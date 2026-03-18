@@ -17,26 +17,60 @@ https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia
 - Classes: `NORMAL`, `PNEUMONIA`
 - Pre-split into `train/`, `val/`, and `test/` directories
 
-> Dataset is not committed to this repo. Download it from Kaggle and place it in `data/`.
+> Dataset is not committed to this repo. Download it from Kaggle and place it in `data/raw/`.
 
 ---
 
 ## Repository Structure
 ```
-189-Project/
-├── data/                  # Dataset (not committed, download from Kaggle)
-│   ├── train/
-│   ├── val/
-│   └── test/
-├── notebooks/             # Jupyter notebooks for EDA and experiments
-├── src/                   # Source code
-│   ├── preprocess.py      # Data loading and preprocessing
-│   ├── model.py           # Model architecture and fine-tuning
-│   ├── train.py           # Training loop
-│   └── evaluate.py        # Evaluation and metrics
-├── results/               # Saved model weights, plots, metrics
-├── report/                # Final report and presentation
-├── requirements.txt       # Python dependencies
+Computer-Vision-Based-Pneumonia-Detection-Agent/
+├── data/
+│   ├── raw/                    # Original downloaded dataset, never modified
+│   ├── processed/              # Cleaned, resized, normalized data
+│   └── splits/                 # Train / val / test split manifests (CSV or JSON)
+├── src/
+│   ├── data/
+│   │   ├── dataset.py          # PyTorch Dataset class
+│   │   ├── transforms.py       # Augmentation and preprocessing pipelines
+│   │   └── split.py            # Script to generate train/val/test splits
+│   ├── models/
+│   │   ├── backbone.py         # Pre-trained backbone loader (ResNet-50, EfficientNet)
+│   │   ├── head.py             # Binary classification head
+│   │   └── agent.py            # Full model pipeline (backbone + head + inference logic)
+│   ├── training/
+│   │   ├── trainer.py          # Training loop
+│   │   ├── losses.py           # Weighted BCE, focal loss
+│   │   └── scheduler.py        # LR schedulers
+│   ├── evaluation/
+│   │   ├── metrics.py          # Accuracy, F1, AUC-ROC, precision, recall
+│   │   ├── visualize.py        # Confusion matrix, Grad-CAM overlays
+│   │   └── benchmark.py        # Full eval on test set, export results
+│   └── utils/
+│       ├── config.py           # Config loader
+│       ├── logger.py           # Logging setup
+│       └── checkpoint.py       # Save / load model checkpoints
+├── configs/
+│   ├── base.yaml               # Base hyperparameters and paths
+│   ├── resnet50.yaml           # ResNet-50 specific config
+│   └── efficientnet.yaml       # EfficientNet specific config
+├── scripts/
+│   ├── train.sh                # Launch training
+│   ├── evaluate.sh             # Run evaluation
+│   └── download_data.sh        # Automate Kaggle dataset download
+├── results/
+│   ├── checkpoints/            # Saved model weights (.pth files)
+│   ├── logs/                   # Training logs (loss, metrics per epoch)
+│   └── figures/                # Plots, confusion matrices, sample predictions
+├── report/
+│   ├── final_report.pdf
+│   └── presentation.pptx
+├── tests/
+│   ├── test_dataset.py         # Unit tests for data loading
+│   ├── test_model.py           # Unit tests for model forward pass
+│   └── test_metrics.py         # Unit tests for metric calculations
+├── .gitignore
+├── requirements.txt
+├── environment.yml
 └── README.md
 ```
 
@@ -47,7 +81,7 @@ https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia
 ### 1. Clone the repo
 ```bash
 git clone https://github.com/AresIntrepid/189-Project.git
-cd 189-Project
+cd Computer-Vision-Based-Pneumonia-Detection-Agent
 ```
 
 ### 2. Install dependencies
@@ -56,16 +90,16 @@ pip install -r requirements.txt
 ```
 
 ### 3. Download the dataset
-Download from [Kaggle](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia) and extract into the `data/` folder.
+Download from [Kaggle](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia) and extract into `data/raw/`.
 
 ### 4. Train the model
 ```bash
-python src/train.py
+bash scripts/train.sh
 ```
 
 ### 5. Evaluate
 ```bash
-python src/evaluate.py
+bash scripts/evaluate.sh
 ```
 
 ---
