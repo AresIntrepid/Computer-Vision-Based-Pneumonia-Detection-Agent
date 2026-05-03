@@ -38,8 +38,8 @@ def plot_training_curves(history, save_dir="results/figures"):
         (("train_acc",  "val_acc"),  "Accuracy", "accuracy_curves.png"),
     ]:
         fig, ax = plt.subplots(figsize=(8, 5))
-        ax.plot(epochs, history[k1], label=f"Train")
-        ax.plot(epochs, history[k2], label=f"Val")
+        ax.plot(epochs, history[k1], label="Train")
+        ax.plot(epochs, history[k2], label="Val")
         ax.set(xlabel="Epoch", ylabel=title, title=f"Training & Validation {title}")
         ax.legend()
         fig.tight_layout()
@@ -61,6 +61,15 @@ class GradCAM:
         self.model(tensor).backward()
         weights = self._gradients.mean(dim=(2, 3), keepdim=True)
         cam = F.relu((weights * self._activations).sum(dim=1).squeeze()).cpu().numpy()
+
+        # Mask out border artifacts (outer 10% of heatmap)
+        h, w = cam.shape
+        border_h, border_w = h // 10, w // 10
+        cam[:border_h, :]  = 0
+        cam[-border_h:, :] = 0
+        cam[:, :border_w]  = 0
+        cam[:, -border_w:] = 0
+
         return (cam - cam.min()) / (cam.max() - cam.min() + 1e-8)
 
     @staticmethod

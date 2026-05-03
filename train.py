@@ -13,6 +13,8 @@ Override with --config configs/resnet50.yaml for the baseline.
 
 import argparse
 import json
+import os
+import shutil
 from pathlib import Path
 
 import torch
@@ -29,6 +31,9 @@ from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+# Google Drive path — only used when running in Colab
+DRIVE_RESULTS = "/content/drive/Shareddrives/CMPE189-Project/Computer-Vision-Based-Pneumonia-Detection-Agent/results"
+
 
 def parse_args():
     p = argparse.ArgumentParser(description="Train the Pneumonia Detection Agent")
@@ -39,6 +44,18 @@ def parse_args():
 def load_config(path: str) -> dict:
     with open(path) as f:
         return yaml.safe_load(f)
+
+
+def save_to_drive(local_dir: str) -> None:
+    """Copy results folder to Google Drive if running in Colab."""
+    if os.path.exists("/content/drive"):
+        try:
+            shutil.copytree(local_dir, DRIVE_RESULTS, dirs_exist_ok=True)
+            logger.info("Results saved to Drive → %s", DRIVE_RESULTS)
+        except Exception as e:
+            logger.warning("Could not save to Drive: %s", e)
+    else:
+        logger.info("Not running in Colab — skipping Drive backup.")
 
 
 def main():
@@ -95,12 +112,23 @@ def main():
     history = trainer.train()
 
     # ------------------------------------------------------------------
-    # 4. Plot training curves
+    # 4. Save training history JSON so curves can always be regenerated
     # ------------------------------------------------------------------
-    plot_training_curves(history, save_dir=cfg["paths"]["figures"])
+    figures_dir = Path(cfg["paths"]["figures"])
+    figures_dir.mkdir(parents=True, exist_ok=True)
+
+    history_path = figures_dir / "training_history.json"
+    with open(history_path, "w") as f:
+        json.dump(history, f, indent=2)
+    logger.info("Training history saved → %s", history_path)
 
     # ------------------------------------------------------------------
-    # 5. Evaluate best model on test set
+    # 5. Plot training curves
+    # ------------------------------------------------------------------
+    plot_training_curves(history, save_dir=str(figures_dir))
+
+    # ------------------------------------------------------------------
+    # 6. Evaluate best model on test set
     # ------------------------------------------------------------------
     logger.info("Loading best checkpoint for test evaluation...")
     best_ckpt = Path(cfg["paths"]["checkpoints"]) / "best_model.pth"
@@ -112,14 +140,19 @@ def main():
     # Save confusion matrix
     plot_confusion_matrix(
         metrics["confusion_matrix"],
-        save_path=str(Path(cfg["paths"]["figures"]) / "confusion_matrix.png"),
+        save_path=str(figures_dir / "confusion_matrix.png"),
     )
 
-    # Save metrics JSON for the report
-    results_path = Path(cfg["paths"]["figures"]) / "test_metrics.json"
+    # Save metrics JSON
+    results_path = figures_dir / "test_metrics.json"
     serializable = {k: v.tolist() if hasattr(v, "tolist") else v for k, v in metrics.items()}
     results_path.write_text(json.dumps(serializable, indent=2))
     logger.info("Metrics saved → %s", results_path)
+
+    # ------------------------------------------------------------------
+    # 7. Back up everything to Google Drive
+    # ------------------------------------------------------------------
+    save_to_drive("results")
 
 
 if __name__ == "__main__":
