@@ -61,19 +61,11 @@ class GradCAM:
         self.model(tensor).backward()
         weights = self._gradients.mean(dim=(2, 3), keepdim=True)
         cam = F.relu((weights * self._activations).sum(dim=1).squeeze()).cpu().numpy()
-
-        # Mask out border artifacts (outer 10% of heatmap)
-        h, w = cam.shape
-        border_h, border_w = h // 10, w // 10
-        cam[:border_h, :]  = 0
-        cam[-border_h:, :] = 0
-        cam[:, :border_w]  = 0
-        cam[:, -border_w:] = 0
-
-        return (cam - cam.min()) / (cam.max() - cam.min() + 1e-8)
+        cam = (cam - cam.min()) / (cam.max() - cam.min() + 1e-8)
+        return cam
 
     @staticmethod
-    def overlay(pil_image, heatmap, alpha=0.4):
+    def overlay(pil_image, heatmap, alpha=0.5):
         h = Image.fromarray(np.uint8(255 * heatmap)).resize(pil_image.size, resample=Image.BILINEAR)
         colored = np.uint8(255 * cm_module.get_cmap("jet")(np.array(h) / 255.0)[:, :, :3])
         return Image.blend(pil_image.convert("RGB"), Image.fromarray(colored), alpha=alpha)
