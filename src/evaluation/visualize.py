@@ -72,7 +72,7 @@ class GradCAM:
 
 
 def save_gradcam(model, image_path, val_transforms, save_path, device):
-    gcam = GradCAM(model, model.backbone.features[-1])
+    gcam = GradCAM(model, model.backbone.features[-2])
     pil_img = Image.open(image_path).convert("RGB")
     tensor  = val_transforms(pil_img).unsqueeze(0).to(device)
     overlay = GradCAM.overlay(pil_img, gcam(tensor))
